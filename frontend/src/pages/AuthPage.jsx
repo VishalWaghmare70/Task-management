@@ -47,8 +47,8 @@ export default function AuthPage() {
         <div className="auth-brand">
           <div className="auth-brand-icon">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-              <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+              <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
             </svg>
           </div>
           <h1 className="auth-brand-text">TaskFlow</h1>
@@ -128,7 +128,7 @@ export default function AuthPage() {
                   onClick={() => setRole('Manager')}
                 >
                   <div className="role-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
                   </div>
                   <span className="role-label">Manager</span>
                   <span className="role-desc">Create & assign tasks</span>
@@ -139,7 +139,7 @@ export default function AuthPage() {
                   onClick={() => setRole('Team Member')}
                 >
                   <div className="role-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
                   </div>
                   <span className="role-label">Team Member</span>
                   <span className="role-desc">View & complete tasks</span>
@@ -165,7 +165,7 @@ export default function AuthPage() {
         </div>
       </div>
 
-      <p className="auth-system-status">System Status: All Operational</p>
+      <p className="auth-system-status">System Status: All Opeendtional</p>
     </div>
   );
 }
