@@ -14,10 +14,19 @@ export function NotificationProvider({ children }) {
     if (!user) return;
     try {
       const res = await fetchNotifications();
-      setNotifications(res.data);
-      setUnreadCount(res.data.filter(n => !n.read).length);
+      if (Array.isArray(res.data)) {
+        setNotifications(res.data);
+        setUnreadCount(res.data.filter(n => !n.read).length);
+      } else {
+        console.warn('Notifications response is not an array:', res.data);
+        setNotifications([]);
+        setUnreadCount(0);
+      }
     } catch (err) {
       console.error('Failed to load notifications', err);
+      // Ensure state is at least empty instead of keeping stale/broken data
+      setNotifications([]);
+      setUnreadCount(0);
     }
   }, [user]);
 

@@ -14,14 +14,18 @@ export default function UsersPage() {
     const loadUsers = async () => {
       try {
         const res = await fetchUsers();
-        // Filter: CEO sees all others, Managers see Team Members
-        const filtered = res.data
-          .filter(u => u._id !== user?._id)
-          .filter(u => {
-            if (user?.role === 'CEO' || user?.role === 'Founder') return true;
-            return u.role === 'Team Member';
-          });
-        setTeam(filtered);
+        if (Array.isArray(res.data)) {
+          // Filter: CEO sees all others, Managers see Team Members
+          const filtered = res.data
+            .filter(u => u._id !== user?._id)
+            .filter(u => {
+              if (user?.role === 'CEO' || user?.role === 'Founder') return true;
+              return u.role === 'Team Member';
+            });
+          setTeam(filtered);
+        } else {
+          setTeam([]);
+        }
       } catch (err) {
         toast.error('Failed to load team members');
       } finally {

@@ -40,9 +40,10 @@ export default function Dashboard() {
         fetchTaskStats(), 
         fetchUsers()
       ]);
-      setTasks(tasksRes.data);
-      setStats(statsRes.data);
-      setUsersList(usersRes.data);
+      
+      setTasks(Array.isArray(tasksRes.data) ? tasksRes.data : []);
+      setStats(statsRes.data || null);
+      setUsersList(Array.isArray(usersRes.data) ? usersRes.data : []);
     } catch (err) {
       toast.error('Failed to load dashboard data');
       console.error(err);
