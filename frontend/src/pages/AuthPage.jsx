@@ -11,11 +11,15 @@ export default function AuthPage() {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('Team Member');
   const [loading, setLoading] = useState(false);
+  const [showStatus, setShowStatus] = useState(false);
   const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    // Cold start notification after 1.5s
+    const statusTimeout = setTimeout(() => setShowStatus(true), 1500);
+
     try {
       const payload = isLogin
         ? { email, password }
@@ -23,12 +27,15 @@ export default function AuthPage() {
       const res = isLogin
         ? await loginUser(payload)
         : await registerUser(payload);
+      
       login(res.data.user, res.data.token);
       toast.success(isLogin ? 'Welcome back!' : 'Account created successfully');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Authentication failed');
     } finally {
+      clearTimeout(statusTimeout);
       setLoading(false);
+      setShowStatus(false);
     }
   };
 
@@ -160,15 +167,18 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary text-white py-4 rounded-2xl font-black text-lg shadow-xl shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+              className="w-full bg-primary text-white py-4 rounded-2xl font-black text-lg shadow-xl shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] flex flex-col items-center justify-center gap-1 transition-all active:scale-95 disabled:opacity-75 disabled:hover:scale-100 touch-manipulation z-[10]"
             >
               {loading ? (
-                <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
                 <>
+                  <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+                  {showStatus && <span className="text-[10px] font-bold uppercase tracking-wider animate-pulse pt-1">Server is waking up, please wait...</span>}
+                </>
+              ) : (
+                <div className="flex items-center gap-2">
                   {isLogin ? 'Sign In' : 'Create Account'}
                   <ArrowRight size={20} />
-                </>
+                </div>
               )}
             </button>
           </form>
