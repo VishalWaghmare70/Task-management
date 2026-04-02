@@ -51,5 +51,10 @@ export const deleteLink = (taskId, linkId) => api.delete(`/tasks/${taskId}/link/
 // Users
 export const fetchUsers = () => api.get('/users');
 
-export default api;
+// Notifications
+export const fetchNotifications = () => api.get('/notifications');
+export const markNotificationRead = (id) => api.put(`/notifications/${id}/read`);
+export const markAllNotificationsRead = () => api.put('/notifications/read-all');
+export const clearAllNotifications = () => api.delete('/notifications');
 
+export default api;

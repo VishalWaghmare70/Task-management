@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, CheckSquare, Users, LogOut, Menu, X, Settings } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
+import NotificationDropdown from './NotificationDropdown';
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -115,6 +116,7 @@ export default function Layout() {
           </button>
 
           <div className="ml-auto flex items-center gap-3">
+            <NotificationDropdown />
             <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
               <div className="hidden sm:flex flex-col items-end">
                 <span className="text-sm font-bold text-slate-900 leading-tight truncate max-w-[120px]">{user?.name}</span>

@@ -1,17 +1,20 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { fetchTasks, fetchTaskStats, fetchActivities, fetchUsers, createTask, updateTask, updateTaskStatus, deleteTask, uploadAttachments, deleteAttachment, addLink, deleteLink } from '../services/api';
 import KanbanBoard from '../components/KanbanBoard';
 import CreateTaskModal from '../components/CreateTaskModal';
 import EditTaskModal from '../components/EditTaskModal';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import { Search, Plus, Clock, CheckCircle, ListTodo, AlertCircle, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { addNotification } = useNotifications();
   const [tasks, setTasks] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const overdueNotified = React.useRef(new Set());
   const [modalOpen, setModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
@@ -55,6 +58,22 @@ export default function Dashboard() {
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery, filterUser, filterPriority, filter]);
 
+  // Check for overdue tasks
+  useEffect(() => {
+    if (tasks.length > 0) {
+      const today = new Date(new Date().toDateString());
+      tasks.forEach(t => {
+        if ((t.status === 'Pending' || t.status === 'In Progress') && t.dueDate) {
+          const dueDate = new Date(t.dueDate);
+          if (dueDate < today && !overdueNotified.current.has(t._id)) {
+            addNotification(`Task "${t.title}" becomes Overdue`, 'warning');
+            overdueNotified.current.add(t._id);
+          }
+        }
+      });
+    }
+  }, [tasks, addNotification]);
+
   const handleCreateTask = async (data) => {
     try {
       const { files, links, ...taskData } = data;
@@ -76,6 +95,7 @@ export default function Dashboard() {
       }
 
       toast.success('Task created successfully');
+      addNotification('New task added', 'info');
       await loadData();
       setModalOpen(false);
     } catch (err) {
@@ -86,6 +106,13 @@ export default function Dashboard() {
   const handleStatusChange = async (taskId, newStatus) => {
     try {
       await updateTaskStatus(taskId, newStatus);
+      if (newStatus === 'In Progress') {
+        addNotification('Task moved to In Progress', 'info');
+        toast.success('Task moved to In Progress', { duration: 2500 });
+      } else if (newStatus === 'Completed') {
+        addNotification('Task completed', 'success');
+        toast.success('Task moved to Completed', { duration: 2500 });
+      }
       await loadData();
     } catch (err) {
       toast.error('Status update failed');
@@ -115,7 +142,7 @@ export default function Dashboard() {
       await loadData();
       setEditModalOpen(false);
     } catch (err) {
-      toast.error('Update failed');
+      toast.error(err.response?.data?.message || 'Update failed');
     }
   };
 
@@ -244,7 +271,11 @@ export default function Dashboard() {
               >
                 <option value="">All Team Members</option>
                 {usersList
-                  .filter(u => u.name && !['prerna', 'rajesh'].includes(u.name.toLowerCase().trim().split(' ')[0]))
+                  .filter(u => u.name && u._id !== user?._id) // Hide self
+                  .filter(u => {
+                    if (user?.role === 'CEO' || user?.role === 'Founder') return true; // CEO sees everyone
+                    return u.role === 'Team Member'; // Managers and Others see just Team Members
+                  })
                   .map((u) => <option key={u._id} value={u._id}>{u.name}</option>)}
               </select>
 
@@ -332,6 +363,7 @@ export default function Dashboard() {
             }}
             taskProps={{
               onComplete: (id) => handleStatusChange(id, 'Completed'),
+              onProgress: (id) => handleStatusChange(id, 'In Progress'),
               onDelete: handleDelete,
               onEdit: handleEdit,
               isManager,
@@ -345,7 +377,7 @@ export default function Dashboard() {
       </section>
 
       {modalOpen && <CreateTaskModal onClose={() => setModalOpen(false)} onSubmit={handleCreateTask} users={usersList} />}
-      {editModalOpen && editingTask && <EditTaskModal task={editingTask} onClose={() => setEditModalOpen(false)} onSubmit={(data) => handleUpdateTask(editingTask._id, data)} users={usersList} />}
+      {editModalOpen && editingTask && <EditTaskModal task={editingTask} onClose={() => setEditModalOpen(false)} onSubmit={(id, data) => handleUpdateTask(id, data)} users={usersList} />}
     </div>
   );
 }

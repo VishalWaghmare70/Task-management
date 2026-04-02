@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Calendar, Check, Link as LinkIcon, Paperclip, Image as ImageIcon, Trash2, Plus } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { X, Calendar, Check, Link as LinkIcon, Paperclip, Image as ImageIcon, Trash2, Plus, Edit3 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 
 export default function EditTaskModal({ task, onClose, onSubmit, users }) {
+  const { user } = useAuth();
   const [title, setTitle] = useState(task.title || '');
   const [description, setDescription] = useState(task.description || '');
   const [priority, setPriority] = useState(task.priority || 'Medium');
@@ -122,7 +124,11 @@ export default function EditTaskModal({ task, onClose, onSubmit, users }) {
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Assign Team Collaborators</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-1 max-h-[220px] overflow-y-auto no-scrollbar">
               {users
-                .filter(u => u.name && !['prerna', 'rajesh'].includes(u.name.toLowerCase().trim().split(' ')[0]))
+                .filter(u => u.name && u._id !== user?._id) // Exclude self
+                .filter(u => {
+                  if (user?.role === 'CEO' || user?.role === 'Founder') return true; // CEO sees everyone
+                  return u.role === 'Team Member'; // Managers see Team Members
+                })
                 .map(u => (
                 <button
                   key={u._id}
@@ -174,6 +180,3 @@ export default function EditTaskModal({ task, onClose, onSubmit, users }) {
     </div>
   );
 }
-
-// Fixed lucide import check
-import { Edit3 } from 'lucide-react';

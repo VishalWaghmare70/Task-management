@@ -19,7 +19,8 @@ import { twMerge } from 'tailwind-merge';
 
 export default function TaskCard({ 
   task, 
-  onComplete, 
+  onComplete,
+  onProgress, 
   isManager, 
   onDelete, 
   onEdit, 
@@ -212,7 +213,7 @@ export default function TaskCard({
               isOverdue ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-slate-50 text-slate-400 border-slate-100 group-hover:border-slate-200"
             )}>
               <Calendar size={12} strokeWidth={2.5} />
-              {isOverdue ? "Overdue" : dueDateLabel || "TBD"}
+              {isOverdue ? `Overdue: ${dueDateLabel}` : dueDateLabel || "TBD"}
             </div>
           </div>
         </div>
@@ -256,13 +257,23 @@ export default function TaskCard({
             </div>
           </div>
         ) : !isManager && (
-          <button 
-            onClick={() => onComplete(task._id)}
-            className="mt-4 w-full flex items-center justify-center gap-2 py-3 bg-white hover:bg-completed/5 text-slate-600 hover:text-completed border border-slate-200 hover:border-completed/30 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-sm active:scale-[0.98]"
-          >
-            <PlayCircle size={16} strokeWidth={2.5} />
-            Resolve Task
-          </button>
+          task.status === 'Pending' ? (
+            <button 
+              onClick={() => onProgress(task._id)}
+              className="mt-4 w-full flex items-center justify-center gap-2 py-3 bg-white hover:bg-progress/5 text-slate-600 hover:text-progress border border-slate-200 hover:border-progress/30 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-sm active:scale-[0.98]"
+            >
+              <PlayCircle size={16} strokeWidth={2.5} />
+              Start Task
+            </button>
+          ) : (
+            <button 
+              onClick={() => onComplete(task._id)}
+              className="mt-4 w-full flex items-center justify-center gap-2 py-3 bg-white hover:bg-completed/5 text-slate-600 hover:text-completed border border-slate-200 hover:border-completed/30 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-sm active:scale-[0.98]"
+            >
+              <CheckCircle2 size={16} strokeWidth={2.5} />
+              Resolve Task
+            </button>
+          )
         )}
 
         {/* Upload State Overlay */}

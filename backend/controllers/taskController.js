@@ -1,5 +1,7 @@
 const Task = require('../models/Task');
 const ActivityLog = require('../models/ActivityLog');
+const Notification = require('../models/Notification');
+const User = require('../models/User');
 const fs = require('fs');
 const path = require('path');
 
@@ -64,6 +66,20 @@ const createTask = async (req, res) => {
       taskTitle: task.title
     });
 
+    // Notify assigned users
+    if (assigned_users && assigned_users.length > 0) {
+      const notifs = assigned_users.map(userId => {
+        const dateStr = dueDate ? ` (Due: ${new Date(dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})` : '';
+        return {
+          user: userId,
+          message: `You have been assigned a new task: "${task.title}"${dateStr}`,
+          type: 'info',
+          task: task._id
+        };
+      });
+      await Notification.insertMany(notifs);
+    }
+
     res.status(201).json(populated);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
@@ -107,6 +123,24 @@ const updateTaskStatus = async (req, res) => {
       task: task._id,
       taskTitle: task.title
     });
+
+    // Notify CEO and Manager when task is completed
+    if (status === 'Completed') {
+      const managers = await User.find({ role: { $in: ['Manager', 'CEO', 'Founder'] } });
+      if (managers.length > 0) {
+        // Exclude the user who actually completed it if they are a manager themselves
+        const toNotify = managers.filter(m => m._id.toString() !== req.user.id);
+        if (toNotify.length > 0) {
+           const notifs = toNotify.map(m => ({
+             user: m._id,
+             message: `Task "${task.title}" was completed by ${req.user.name || 'a team member'}`,
+             type: 'success',
+             task: task._id
+           }));
+           await Notification.insertMany(notifs);
+        }
+      }
+    }
 
     res.json(populated);
   } catch (err) {
@@ -279,6 +313,7 @@ const updateTask = async (req, res) => {
 
     // Don't allow editing completed tasks
     if (task.status === 'Completed') {
+      console.log("UPDATE TASK FAILED: Status is completed");
       return res.status(400).json({ message: 'Cannot edit a completed task' });
     }
 
@@ -286,17 +321,20 @@ const updateTask = async (req, res) => {
 
     // Validate title if provided
     if (title !== undefined && !title.trim()) {
+      console.log("UPDATE TASK FAILED: Title is empty");
       return res.status(400).json({ message: 'Task title cannot be empty' });
     }
 
     // Validate priority if provided
     const validPriorities = ['Low', 'Medium', 'High'];
     if (priority && !validPriorities.includes(priority)) {
+      console.log("UPDATE TASK FAILED: Invalid priority", priority);
       return res.status(400).json({ message: 'Priority must be Low, Medium, or High' });
     }
 
     // Validate dueDate if provided
     if (dueDate && dueDate !== null && isNaN(new Date(dueDate).getTime())) {
+      console.log("UPDATE TASK FAILED: Invalid dueDate", dueDate);
       return res.status(400).json({ message: 'Invalid due date' });
     }
 

@@ -1,7 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
+import UsersPage from './pages/UsersPage';
 import Layout from './components/Layout';
 
 function ProtectedRoute({ children }) {
@@ -24,6 +26,7 @@ function AppRoutes() {
       {/* Wrap protected routes with Layout */}
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/users" element={<UsersPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
@@ -35,8 +38,11 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <NotificationProvider>
+          <AppRoutes />
+        </NotificationProvider>
       </AuthProvider>
     </BrowserRouter>
   );
 }
+
