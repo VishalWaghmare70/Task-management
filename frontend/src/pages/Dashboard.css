@@ -29,7 +29,7 @@
 /* Stats */
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: var(--space-5);
   opacity: 0;
 }
@@ -74,6 +74,15 @@
   color: #92400e;
 }
 
+.stat-card--overdue {
+  border: 1.5px solid rgba(239, 68, 68, 0.2);
+}
+
+.stat-icon--overdue {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
 .stat-info {
   display: flex;
   flex-direction: column;
@@ -89,6 +98,195 @@
 
 .stat-label {
   margin-top: var(--space-1);
+}
+
+/* Charts section */
+.charts-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-5);
+  opacity: 0;
+}
+
+.chart-card {
+  background: var(--surface-container-lowest);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  height: 320px;
+}
+
+.chart-card--wide {
+  grid-column: span 2;
+}
+
+@media (max-width: 1024px) {
+  .chart-card--wide {
+    grid-column: span 1;
+  }
+  
+  .dashboard-content-split {
+    flex-direction: column;
+  }
+  
+  .dashboard-content-sidebar {
+    width: 100%;
+  }
+}
+
+.chart-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: var(--space-4);
+  color: var(--on-surface);
+}
+
+.chart-wrapper {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Completion Rate Ring */
+.completion-ring-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.completion-ring {
+  position: relative;
+  width: 160px;
+  height: 160px;
+}
+
+.completion-ring-progress {
+  transition: stroke-dasharray 1s ease-out;
+}
+
+.completion-ring-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.completion-ring-number {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--on-surface);
+  line-height: 1;
+}
+
+.completion-ring-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--on-surface-variant);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Chart Legend */
+.chart-legend {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.chart-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.chart-legend-text {
+  color: var(--on-surface-variant);
+}
+
+.chart-legend-value {
+  color: var(--on-surface);
+  font-weight: 700;
+}
+
+/* Priority Bars */
+.priority-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  flex: 1;
+  justify-content: center;
+}
+
+.priority-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.priority-bar-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--on-surface);
+}
+
+.priority-bar-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.priority-bar-track {
+  height: 8px;
+  background: var(--surface-container);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  position: relative;
+}
+
+.priority-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 1s ease-out;
+}
+
+.priority-bar-count {
+  position: absolute;
+  right: 0;
+  top: -24px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--on-surface);
+}
+
+/* Recharts Tooltip overrides */
+.chart-tooltip-label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--on-surface);
+}
+
+.chart-tooltip-value {
+  font-weight: 500;
 }
 
 /* Tasks header */
@@ -133,6 +331,15 @@
   background: var(--surface-container-lowest);
   color: var(--primary);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.filter-pill--overdue {
+  color: #dc2626;
+}
+
+.filter-pill--overdue.filter-pill--active {
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.08);
 }
 
 .create-task-btn {
@@ -202,6 +409,108 @@
   align-items: center;
   justify-content: center;
   margin-bottom: var(--space-2);
+}
+
+/* Advanced Filters */
+.advanced-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--surface-container-lowest);
+  border-radius: var(--radius-xl);
+  margin-bottom: var(--space-2);
+  border: 1px solid var(--surface-container-low);
+}
+
+.search-bar {
+  flex: 1;
+  min-width: 250px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-4);
+  height: 40px;
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--outline);
+  border-radius: var(--radius-full);
+  transition: all var(--transition-base);
+}
+
+.search-bar:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.search-bar svg {
+  color: var(--on-surface-variant);
+}
+
+.search-bar input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  color: var(--on-surface);
+  font-size: 0.9rem;
+}
+
+.search-bar input::placeholder {
+  color: var(--on-surface-variant);
+}
+
+.select-filters {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.filter-select {
+  height: 40px;
+  padding: 0 var(--space-4);
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--outline);
+  border-radius: var(--radius-full);
+  color: var(--on-surface);
+  font-size: 0.9rem;
+  outline: none;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.filter-select:focus {
+  border-color: var(--primary);
+}
+
+/* Dashboard Content Split Layout */
+.dashboard-content-split {
+  display: flex;
+  gap: var(--space-8);
+  align-items: flex-start;
+}
+
+.dashboard-content-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.dashboard-content-sidebar {
+  width: 320px;
+  flex-shrink: 0;
+  background: var(--surface-container-lowest);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+}
+
+.sidebar-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: var(--space-4);
+  color: var(--on-surface);
 }
 
 /* Responsive */

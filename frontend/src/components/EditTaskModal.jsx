@@ -1,45 +1,19 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { X, Calendar, Check, Link as LinkIcon, Paperclip, Image as ImageIcon, Trash2, Plus } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 
-export default function CreateTaskModal({ onClose, onSubmit, users }) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState('Medium');
-  const [dueDate, setDueDate] = useState('');
-  const [selectedUsers, setSelectedUsers] = useState([]);
-  const [links, setLinks] = useState([{ title: '', url: '' }]);
-  const [files, setFiles] = useState([]);
+export default function EditTaskModal({ task, onClose, onSubmit, users }) {
+  const [title, setTitle] = useState(task.title || '');
+  const [description, setDescription] = useState(task.description || '');
+  const [priority, setPriority] = useState(task.priority || 'Medium');
+  const [dueDate, setDueDate] = useState(task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '');
+  const [selectedUsers, setSelectedUsers] = useState(task.assigned_users?.map(u => u._id) || []);
   const [loading, setLoading] = useState(false);
   
-  const fileInputRef = useRef(null);
-
   const toggleUser = (userId) => {
     setSelectedUsers(prev =>
       prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
     );
-  };
-
-  const addLinkField = () => setLinks([...links, { title: '', url: '' }]);
-  
-  const removeLinkField = (index) => {
-    const newLinks = links.filter((_, i) => i !== index);
-    setLinks(newLinks.length ? newLinks : [{ title: '', url: '' }]);
-  };
-
-  const updateLink = (index, field, value) => {
-    const newLinks = [...links];
-    newLinks[index][field] = value;
-    setLinks(newLinks);
-  };
-
-  const handleFileChange = (e) => {
-    const newFiles = Array.from(e.target.files);
-    setFiles([...files, ...newFiles]);
-  };
-
-  const removeFile = (index) => {
-    setFiles(files.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
@@ -48,17 +22,12 @@ export default function CreateTaskModal({ onClose, onSubmit, users }) {
     
     setLoading(true);
     try {
-      // Validate links before sending
-      const validLinks = links.filter(l => l.url.trim() !== '');
-      
-      await onSubmit({
+      await onSubmit(task._id, {
         title,
         description,
         priority,
         dueDate: dueDate || null,
-        assigned_users: selectedUsers,
-        files,
-        links: validLinks
+        assigned_users: selectedUsers
       });
     } finally {
       setLoading(false);
@@ -69,19 +38,17 @@ export default function CreateTaskModal({ onClose, onSubmit, users }) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 sm:p-4">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300" onClick={onClose} />
       
-      {/* Modal */}
       <div className="relative w-full max-w-xl bg-white rounded-none sm:rounded-3xl shadow-2xl border-0 sm:border border-slate-100 overflow-hidden animate-in zoom-in-[0.98] duration-500">
         <div className="flex items-center justify-between p-8 border-b border-slate-50 bg-white/50 backdrop-blur sticky top-0 z-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20">
-              <Plus size={24} strokeWidth={2.5} />
+              <Edit3 size={24} strokeWidth={2.5} className="lucide lucide-edit-3" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-slate-900 tracking-tight">Create New Task</h2>
-              <p className="text-[10px] uppercase font-black tracking-widest text-slate-400 mt-0.5">Assign goals to your team</p>
+              <h2 className="text-xl font-black text-slate-900 tracking-tight">Edit Task</h2>
+              <p className="text-[10px] uppercase font-black tracking-widest text-slate-400 mt-0.5">Refine your team's objectives</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all">
@@ -90,7 +57,6 @@ export default function CreateTaskModal({ onClose, onSubmit, users }) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-8 space-y-8 max-h-[75vh] overflow-y-auto custom-scroll">
-          {/* Basic Info */}
           <div className="space-y-6">
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Task Title</label>
@@ -99,9 +65,7 @@ export default function CreateTaskModal({ onClose, onSubmit, users }) {
                 required
                 value={title}
                 onChange={e => setTitle(e.target.value)}
-                placeholder="Ex. Redesign Landing Page"
-                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all text-slate-900 placeholder:text-slate-300 font-bold"
-                autoFocus
+                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all text-slate-900 font-bold"
               />
             </div>
 
@@ -110,13 +74,11 @@ export default function CreateTaskModal({ onClose, onSubmit, users }) {
               <textarea
                 value={description}
                 onChange={e => setDescription(e.target.value)}
-                placeholder="What are the specific requirements..."
-                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all text-slate-900 placeholder:text-slate-300 min-h-[100px] resize-none font-medium leading-relaxed"
+                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all text-slate-900 min-h-[100px] resize-none font-medium leading-relaxed"
               />
             </div>
           </div>
 
-          {/* Configuration Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Risk Level / Priority</label>
@@ -156,96 +118,6 @@ export default function CreateTaskModal({ onClose, onSubmit, users }) {
             </div>
           </div>
 
-          {/* Resource Uploads */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-50">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Attachments & Docs</label>
-              <button 
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/5 px-3 py-1.5 rounded-lg transition-all flex items-center gap-2"
-              >
-                <Plus size={14} strokeWidth={3} /> Upload File
-              </button>
-            </div>
-            
-            <input type="file" ref={fileInputRef} className="hidden" multiple onChange={handleFileChange} />
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {files.map((file, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl group transition-all hover:bg-white hover:shadow-sm">
-                  <div className="p-2 rounded-lg bg-white border border-slate-100">
-                    {file.type.startsWith('image/') ? <ImageIcon size={18} className="text-attachment-image" /> : <Paperclip size={18} className="text-attachment-file" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-slate-700 truncate">{file.name}</p>
-                    <p className="text-[9px] uppercase tracking-tighter text-slate-400 font-black">{(file.size / 1024).toFixed(1)} KB</p>
-                  </div>
-                  <button type="button" onClick={() => removeFile(i)} className="p-1.5 text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))}
-              {files.length === 0 && (
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="col-span-1 sm:col-span-2 py-8 flex flex-col items-center justify-center bg-slate-50/50 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 cursor-pointer hover:bg-slate-50 hover:border-primary/30 transition-all group"
-                >
-                  <Paperclip size={28} className="mb-2 group-hover:text-primary transition-colors" />
-                  <span className="text-[10px] font-black uppercase tracking-widest group-hover:text-slate-600 transition-colors">Drag and drop or click to upload</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Links Management */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-50">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Team Resources / Links</label>
-              <button 
-                type="button" 
-                onClick={addLinkField}
-                className="text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/5 px-3 py-1.5 rounded-lg transition-all flex items-center gap-2"
-              >
-                <Plus size={14} strokeWidth={3} /> Add Link
-              </button>
-            </div>
-            
-            <div className="space-y-3">
-              {links.map((link, i) => (
-                <div key={i} className="flex gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 group transition-all focus-within:bg-white focus-within:shadow-md focus-within:border-primary/20">
-                  <div className="flex-1 space-y-3">
-                    <input
-                      type="text"
-                      placeholder="Title (ex. Design System)"
-                      value={link.title}
-                      onChange={e => updateLink(i, 'title', e.target.value)}
-                      className="w-full bg-transparent text-xs font-black uppercase tracking-widest outline-none text-slate-700 placeholder:text-slate-300"
-                    />
-                    <div className="relative">
-                      <LinkIcon className="absolute left-0 top-1/2 -translate-y-1/2 text-attachment-link" size={14} />
-                      <input
-                        type="url"
-                        placeholder="https://..."
-                        value={link.url}
-                        onChange={e => updateLink(i, 'url', e.target.value)}
-                        className="w-full bg-transparent pl-6 text-sm font-medium outline-none text-primary border-b border-transparent focus:border-primary/20 pb-1"
-                      />
-                    </div>
-                  </div>
-                  <button 
-                    type="button" 
-                    onClick={() => removeLinkField(i)}
-                    className="p-3 h-fit text-slate-200 hover:text-rose-500 transition-colors bg-white rounded-xl shadow-sm hover:shadow-md"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Assignees */}
           <div className="space-y-4">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Assign Team Collaborators</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-1 max-h-[220px] overflow-y-auto no-scrollbar">
@@ -295,10 +167,13 @@ export default function CreateTaskModal({ onClose, onSubmit, users }) {
             disabled={loading || !title.trim()}
             className="flex-[2] py-4 text-xs font-black uppercase tracking-[0.2em] text-white bg-primary rounded-2xl hover:bg-primary/hover transition-all shadow-xl shadow-primary/20 disabled:opacity-50 disabled:shadow-none active:scale-[0.98]"
           >
-            {loading ? 'Processing Mission...' : 'Deploy Task'}
+            {loading ? 'Updating Objectives...' : 'Save Changes'}
           </button>
         </div>
       </div>
     </div>
   );
 }
+
+// Fixed lucide import check
+import { Edit3 } from 'lucide-react';

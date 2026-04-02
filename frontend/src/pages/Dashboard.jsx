@@ -1,167 +1,351 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { fetchTasks, createTask, completeTask, deleteTask } from '../services/api';
-import Navbar from '../components/Navbar';
-import TaskCard from '../components/TaskCard';
+import { fetchTasks, fetchTaskStats, fetchActivities, fetchUsers, createTask, updateTask, updateTaskStatus, deleteTask, uploadAttachments, deleteAttachment, addLink, deleteLink } from '../services/api';
+import KanbanBoard from '../components/KanbanBoard';
 import CreateTaskModal from '../components/CreateTaskModal';
-import './Dashboard.css';
+import EditTaskModal from '../components/EditTaskModal';
+import { useAuth } from '../context/AuthContext';
+import { Search, Plus, Clock, CheckCircle, ListTodo, AlertCircle, CheckCircle2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
+  
   const [filter, setFilter] = useState('all');
-  const isManager = user?.role === 'Manager';
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterUser, setFilterUser] = useState('');
+  const [filterPriority, setFilterPriority] = useState('');
+  const [usersList, setUsersList] = useState([]);
 
-  const loadTasks = async () => {
+  const isManager = ['Manager', 'CEO', 'Founder'].includes(user?.role);
+
+  const loadData = async () => {
     try {
-      const res = await fetchTasks();
-      setTasks(res.data);
+      const params = {};
+      if (searchQuery) params.search = searchQuery;
+      if (filter !== 'all' && filter !== 'overdue') params.status = filter;
+      if (filterUser) params.user = filterUser;
+      if (filterPriority) params.priority = filterPriority;
+
+      const [tasksRes, statsRes, usersRes] = await Promise.all([
+        fetchTasks(params), 
+        fetchTaskStats(), 
+        fetchUsers()
+      ]);
+      setTasks(tasksRes.data);
+      setStats(statsRes.data);
+      setUsersList(usersRes.data);
     } catch (err) {
-      console.error('Failed to fetch tasks:', err);
+      toast.error('Failed to load dashboard data');
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { loadTasks(); }, []);
+  useEffect(() => { 
+    const delayDebounceFn = setTimeout(() => {
+      loadData();
+    }, 300);
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery, filterUser, filterPriority, filter]);
 
   const handleCreateTask = async (data) => {
-    await createTask(data);
-    await loadTasks();
+    try {
+      const { files, links, ...taskData } = data;
+      const res = await createTask(taskData);
+      const taskId = res.data._id;
+
+      // Handle file uploads if any
+      if (files && files.length > 0) {
+        await uploadAttachments(taskId, files);
+      }
+
+      // Handle links if any
+      if (links && links.length > 0) {
+        for (const link of links) {
+          if (link.url.trim()) {
+            await addLink(taskId, link);
+          }
+        }
+      }
+
+      toast.success('Task created successfully');
+      await loadData();
+      setModalOpen(false);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to create task');
+    }
   };
 
-  const handleComplete = async (id) => {
-    await completeTask(id);
-    await loadTasks();
+  const handleStatusChange = async (taskId, newStatus) => {
+    try {
+      await updateTaskStatus(taskId, newStatus);
+      await loadData();
+    } catch (err) {
+      toast.error('Status update failed');
+      await loadData();
+    }
   };
 
   const handleDelete = async (id) => {
-    await deleteTask(id);
-    await loadTasks();
+    try {
+      await deleteTask(id);
+      toast.success('Task deleted');
+      await loadData();
+    } catch (err) {
+      toast.error('Failed to delete task');
+    }
   };
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
+  const handleEdit = (task) => {
+    setEditingTask(task);
+    setEditModalOpen(true);
   };
 
-  const formatDate = () => {
-    return new Date().toLocaleDateString('en-US', {
-      weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
-    });
+  const handleUpdateTask = async (taskId, data) => {
+    try {
+      await updateTask(taskId, data);
+      toast.success('Task updated');
+      await loadData();
+      setEditModalOpen(false);
+    } catch (err) {
+      toast.error('Update failed');
+    }
   };
 
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter(t => t.status === 'Completed').length;
-  const pendingTasks = tasks.filter(t => t.status === 'Pending').length;
+  const handleUpload = async (taskId, files, onProgress) => {
+    try {
+      await uploadAttachments(taskId, files, onProgress);
+      toast.success('Files uploaded');
+      await loadData();
+    } catch (err) {
+      toast.error('Upload failed');
+    }
+  };
+
+  const handleDeleteAttachment = async (taskId, attachmentId) => {
+    try {
+      await deleteAttachment(taskId, attachmentId);
+      toast.success('Attachment removed');
+      await loadData();
+    } catch (err) {
+      toast.error('Failed to remove attachment');
+    }
+  };
+
+  const handleAddLink = async (taskId, data) => {
+    try {
+      await addLink(taskId, data);
+      toast.success('Link added');
+      await loadData();
+    } catch (err) {
+      toast.error('Failed to add link');
+    }
+  };
+
+  const handleDeleteLink = async (taskId, linkId) => {
+    try {
+      await deleteLink(taskId, linkId);
+      toast.success('Link removed');
+      await loadData();
+    } catch (err) {
+      toast.error('Failed to remove link');
+    }
+  };
 
   const filteredTasks = tasks.filter(t => {
-    if (filter === 'completed') return t.status === 'Completed';
-    if (filter === 'pending') return t.status === 'Pending';
+    if (filter === 'overdue') return (t.status === 'Pending' || t.status === 'In Progress') && t.dueDate && new Date(t.dueDate) < new Date(new Date().toDateString());
     return true;
   });
 
   return (
-    <div className="dashboard-page">
-      <Navbar />
+    <div className="flex flex-col gap-10 max-w-[1600px] mx-auto w-full relative min-h-screen">
 
-      <main className="dashboard-main">
-        {/* Greeting */}
-        <section className="greeting-section animate-fade-in">
-          <div>
-            <h1 className="display-md">{getGreeting()}, {user?.name?.split(' ')[0]}</h1>
-            <p className="body-md greeting-date">{formatDate()}</p>
+      
+      {/* Header Info */}
+      <div className="flex flex-col gap-2">
+        <h1 className="text-4xl font-black text-slate-800 tracking-tighter">Mission Control</h1>
+        <p className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-400">Manage, Track, and Scale your team's objectives</p>
+      </div>
+
+      {/* Top Stats Section - Restricted to Manager/CEO */}
+      {(user?.role === 'Manager' || user?.role === 'CEO') && (
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-card p-6 rounded-2xl border border-border shadow-sm flex items-center gap-4 transition-transform hover:scale-[1.02] duration-300">
+            <div className="w-14 h-14 bg-primary/10 text-primary rounded-2xl flex items-center justify-center shrink-0 border border-primary/20">
+              <ListTodo size={28} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1">Total Tasks</p>
+              <h2 className="text-2xl font-black text-foreground leading-none">{stats?.totalTasks || 0}</h2>
+            </div>
+          </div>
+
+          <div className="bg-card p-6 rounded-2xl border border-border shadow-sm flex items-center gap-4 transition-transform hover:scale-[1.02] duration-300">
+            <div className="w-14 h-14 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center shrink-0 border border-emerald-100">
+              <CheckCircle size={28} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1">Completed</p>
+              <h2 className="text-2xl font-black text-foreground leading-none">{stats?.completedTasks || 0}</h2>
+            </div>
+          </div>
+
+          <div className="bg-card p-6 rounded-2xl border border-border shadow-sm flex items-center gap-4 transition-transform hover:scale-[1.02] duration-300">
+            <div className="w-14 h-14 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center shrink-0 border border-amber-100">
+              <Clock size={28} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1">Pending</p>
+              <h2 className="text-2xl font-black text-foreground leading-none">{stats?.pendingTasks || 0}</h2>
+            </div>
+          </div>
+
+          <div className="bg-card p-6 rounded-2xl border border-border shadow-sm flex items-center gap-4 transition-transform hover:scale-[1.02] duration-300">
+            <div className="w-14 h-14 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center shrink-0 border border-rose-100">
+              <AlertCircle size={28} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1">Overdue</p>
+              <h2 className="text-2xl font-black text-foreground leading-none">{stats?.overdueTasks || 0}</h2>
+            </div>
           </div>
         </section>
+      )}
 
-        {/* Stats */}
-        <section className="stats-row animate-fade-in" style={{ animationDelay: '0.1s' }}>
-          <div className="stat-card" id="stat-total">
-            <div className="stat-icon stat-icon--total">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12h6"/></svg>
+      {/* Main Board View */}
+      <section className="flex flex-col gap-6">
+        {/* Header & Controls */}
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+          
+          <div className="flex flex-col lg:flex-row gap-4 flex-1">
+            <div className="relative flex-1 max-w-md group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={18} />
+              <input
+                type="text"
+                placeholder="Search tasks..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all text-slate-900 placeholder:text-slate-400"
+              />
             </div>
-            <div className="stat-info">
-              <span className="stat-number">{totalTasks}</span>
-              <span className="stat-label label-md">Total Tasks</span>
-            </div>
-          </div>
-          <div className="stat-card" id="stat-completed">
-            <div className="stat-icon stat-icon--completed">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
-            </div>
-            <div className="stat-info">
-              <span className="stat-number">{completedTasks}</span>
-              <span className="stat-label label-md">Completed</span>
-            </div>
-          </div>
-          <div className="stat-card" id="stat-pending">
-            <div className="stat-icon stat-icon--pending">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-            </div>
-            <div className="stat-info">
-              <span className="stat-number">{pendingTasks}</span>
-              <span className="stat-label label-md">Pending</span>
-            </div>
-          </div>
-        </section>
+            
+            <div className="flex gap-4 w-full lg:w-auto">
+              <select
+                value={filterUser}
+                onChange={e => setFilterUser(e.target.value)}
+                className="flex-1 lg:w-48 py-2.5 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary cursor-pointer text-slate-700 font-medium"
+              >
+                <option value="">All Team Members</option>
+                {usersList
+                  .filter(u => u.name && !['prerna', 'rajesh'].includes(u.name.toLowerCase().trim().split(' ')[0]))
+                  .map((u) => <option key={u._id} value={u._id}>{u.name}</option>)}
+              </select>
 
-        {/* Task section header */}
-        <section className="tasks-header animate-fade-in" style={{ animationDelay: '0.15s' }}>
-          <div className="tasks-header-left">
-            <h2 className="headline-sm">All Tasks</h2>
-            <div className="filter-pills">
-              <button className={`filter-pill ${filter === 'all' ? 'filter-pill--active' : ''}`} onClick={() => setFilter('all')}>All</button>
-              <button className={`filter-pill ${filter === 'pending' ? 'filter-pill--active' : ''}`} onClick={() => setFilter('pending')}>Pending</button>
-              <button className={`filter-pill ${filter === 'completed' ? 'filter-pill--active' : ''}`} onClick={() => setFilter('completed')}>Completed</button>
+              <select
+                value={filterPriority}
+                onChange={e => setFilterPriority(e.target.value)}
+                className="flex-1 lg:w-48 py-2.5 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary cursor-pointer text-slate-700 font-medium"
+              >
+                <option value="">All Priorities</option>
+                <option value="High">High Priority</option>
+                <option value="Medium">Medium Priority</option>
+                <option value="Low">Low Priority</option>
+              </select>
             </div>
           </div>
-          {isManager && (
-            <button className="create-task-btn" onClick={() => setModalOpen(true)} id="create-task-btn">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Create Task
-            </button>
-          )}
-        </section>
 
-        {/* Task grid */}
+          <div className="flex items-center justify-between gap-6 shrink-0 pt-4 border-t border-slate-100 xl:border-t-0 xl:pt-0 xl:pl-6 xl:border-l">
+            <div className="flex bg-slate-50 p-1.5 rounded-2xl overflow-x-auto no-scrollbar gap-1 max-w-[260px] xs:max-w-none shadow-inner">
+              {['all', 'Pending', 'In Progress', 'Completed', 'overdue'].map(f => {
+                const isActive = filter === f;
+                const statusColor = 
+                  f === 'Pending' ? 'text-pending' : 
+                  f === 'In Progress' ? 'text-progress' : 
+                  f === 'Completed' ? 'text-completed' : 
+                  f === 'overdue' ? 'text-rose-500' : 
+                  'text-primary';
+                
+                return (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    className={`whitespace-nowrap px-4 py-2 text-[10px] font-black uppercase tracking-[0.1em] rounded-xl transition-all relative ${
+                      isActive 
+                      ? `bg-white ${statusColor} shadow-md shadow-slate-200` 
+                      : 'text-slate-400 hover:text-slate-600 hover:bg-white/50'
+                    }`}
+                  >
+                    {isActive && (
+                      <span className={`absolute bottom-0.5 left-1/2 -translateX-1/2 w-4 h-0.5 ${
+                        f === 'Pending' ? 'bg-pending' : 
+                        f === 'In Progress' ? 'bg-progress' : 
+                        f === 'Completed' ? 'bg-completed' : 
+                        f === 'overdue' ? 'bg-rose-500' : 
+                        'bg-primary'
+                      } rounded-full`} />
+                    )}
+                    {f === 'all' ? 'Board' : f}
+                  </button>
+                );
+              })}
+            </div>
+
+            {isManager && (
+              <button 
+                onClick={() => setModalOpen(true)}
+                className="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl text-sm font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:bg-primary/hover transition-all shrink-0 active:scale-95 group"
+              >
+                <Plus size={18} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-300" />
+                <span className="hidden md:inline">Add Task</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Board Container */}
         {loading ? (
-          <div className="loading-state">
-            <div className="loading-spinner"></div>
-            <p className="body-md">Loading tasks...</p>
-          </div>
-        ) : filteredTasks.length === 0 ? (
-          <div className="empty-state animate-fade-in">
-            <div className="empty-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12l2 2 4-4"/></svg>
-            </div>
-            <h3 className="title-md">No tasks found</h3>
-            <p className="body-md">{isManager ? 'Create your first task to get started.' : 'No tasks have been assigned yet.'}</p>
+          <div className="h-64 flex flex-col items-center justify-center gap-4 text-slate-500">
+            <div className="w-8 h-8 border-4 border-slate-200 border-t-primary rounded-full animate-spin" />
+            <p className="font-medium animate-pulse">Loading board...</p>
           </div>
         ) : (
-          <section className="task-grid" id="task-grid">
-            {filteredTasks.map((task, i) => (
-              <div key={task._id} style={{ animationDelay: `${0.05 * i}s` }}>
-                <TaskCard
-                  task={task}
-                  onComplete={handleComplete}
-                  onDelete={handleDelete}
-                  isManager={isManager}
-                />
-              </div>
-            ))}
-          </section>
+          <KanbanBoard
+            tasks={filteredTasks}
+            activeFilter={filter}
+            onDragEnd={(e) => {
+              const { active, over } = e;
+              if (!over) return;
+              const taskId = active.id;
+              const newStatus = over.id;
+              const task = tasks.find(t => t._id === taskId);
+              if (task && task.status !== newStatus) {
+                setTasks(prev => prev.map(t => t._id === taskId ? { ...t, status: newStatus } : t));
+                handleStatusChange(taskId, newStatus);
+              }
+            }}
+            taskProps={{
+              onComplete: (id) => handleStatusChange(id, 'Completed'),
+              onDelete: handleDelete,
+              onEdit: handleEdit,
+              isManager,
+              onUpload: handleUpload,
+              onDeleteAttachment: handleDeleteAttachment,
+              onAddLink: handleAddLink,
+              onDeleteLink: handleDeleteLink
+            }}
+          />
         )}
-      </main>
+      </section>
 
-      <CreateTaskModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSubmit={handleCreateTask}
-      />
+      {modalOpen && <CreateTaskModal onClose={() => setModalOpen(false)} onSubmit={handleCreateTask} users={usersList} />}
+      {editModalOpen && editingTask && <EditTaskModal task={editingTask} onClose={() => setEditModalOpen(false)} onSubmit={(data) => handleUpdateTask(editingTask._id, data)} users={usersList} />}
     </div>
   );
 }

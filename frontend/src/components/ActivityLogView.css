@@ -1,0 +1,93 @@
+.activity-empty {
+  padding: var(--space-4);
+  text-align: center;
+  color: var(--outline);
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: var(--space-2);
+}
+
+/* Custom scrollbar for activity list */
+.activity-list::-webkit-scrollbar {
+  width: 4px;
+}
+.activity-list::-webkit-scrollbar-track {
+  background: var(--surface-container-low);
+  border-radius: var(--radius-full);
+}
+.activity-list::-webkit-scrollbar-thumb {
+  background: var(--surface-container-high);
+  border-radius: var(--radius-full);
+}
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--surface-container-lowest);
+  transition: background-color var(--transition-base);
+  border: 1px solid var(--surface-container-low);
+}
+
+.activity-item:hover {
+  background: var(--surface-container-low);
+}
+
+.activity-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.activity-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.activity-text {
+  font-size: 0.85rem;
+  color: var(--on-surface-variant);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.activity-user {
+  font-weight: 600;
+  color: var(--on-surface);
+}
+
+.activity-action {
+  font-weight: 500;
+}
+
+.activity-task {
+  font-weight: 600;
+  color: var(--primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  vertical-align: bottom;
+  max-width: 150px;
+}
+
+.activity-time {
+  font-size: 0.7rem;
+  color: var(--outline);
+  font-weight: 500;
+}

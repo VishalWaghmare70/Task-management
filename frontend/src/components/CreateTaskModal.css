@@ -19,6 +19,8 @@
   box-shadow: var(--shadow-ambient);
   animation: fadeInScale 0.3s ease forwards;
   overflow: hidden;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .modal-header {
@@ -93,6 +95,93 @@
   font-weight: 500;
 }
 
+/* ── Priority & Due Date row ── */
+.form-row {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.form-group--half {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Priority selector */
+.priority-selector {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.priority-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-container);
+  color: var(--on-surface-variant);
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all var(--transition-base);
+  border: 1.5px solid transparent;
+}
+
+.priority-option:hover {
+  background: var(--surface-container-low);
+}
+
+.priority-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.priority-dot--low {
+  background: #2dd4bf;
+}
+
+.priority-dot--medium {
+  background: #fbbf24;
+}
+
+.priority-dot--high {
+  background: #f87171;
+}
+
+/* Selected states */
+.priority-option--selected.priority-option--low {
+  background: rgba(45, 212, 191, 0.1);
+  border-color: #2dd4bf;
+  color: #0d9488;
+}
+
+.priority-option--selected.priority-option--medium {
+  background: rgba(251, 191, 36, 0.1);
+  border-color: #fbbf24;
+  color: #b45309;
+}
+
+.priority-option--selected.priority-option--high {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: #f87171;
+  color: #dc2626;
+}
+
+/* Date input */
+.form-date-input {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.form-date-input::-webkit-calendar-picker-indicator {
+  filter: invert(0.5);
+  cursor: pointer;
+}
+
+/* ── User selector ── */
 .user-selector {
   display: flex;
   flex-direction: column;
@@ -150,6 +239,7 @@
   color: var(--on-primary);
 }
 
+/* ── Modal actions ── */
 .modal-actions {
   display: flex;
   gap: var(--space-3);
@@ -190,4 +280,12 @@
 
 .btn-secondary:hover {
   background: var(--surface-container);
+}
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+  .form-row {
+    flex-direction: column;
+    gap: var(--space-4);
+  }
 }
