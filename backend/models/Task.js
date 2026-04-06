@@ -7,6 +7,7 @@ const taskSchema = new mongoose.Schema({
   priority: { type: String, enum: ['Low', 'Medium', 'High'], default: 'Medium' },
   dueDate: { type: Date, default: null },
   assigned_users: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
   created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   completed_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   completion_time: { type: Date, default: null },

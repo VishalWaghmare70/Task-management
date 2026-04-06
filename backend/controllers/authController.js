@@ -74,4 +74,43 @@ const changePassword = async (req, res) => {
   }
 };
 
-module.exports = { register, login, changePassword };
+// DELETE /api/auth/delete-account
+const deleteAccount = async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ message: 'Password is required to delete your account' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(401).json({ message: 'Incorrect password' });
+
+    // Clean up associated data
+    const Task = require('../models/Task');
+    const Notification = require('../models/Notification');
+    const ActivityLog = require('../models/ActivityLog');
+
+    // Remove user from assigned tasks
+    await Task.updateMany(
+      { assigned_users: req.user.id },
+      { $pull: { assigned_users: req.user.id } }
+    );
+
+    // Delete notifications for this user
+    await Notification.deleteMany({ user: req.user.id });
+
+    // (Optional) Delete activity logs? Usually logs are kept. Let's keep them but maybe clear the user ref?
+    // For simplicity, let's just delete the user now.
+
+    await User.findByIdAndDelete(req.user.id);
+
+    res.json({ message: 'Account deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+module.exports = { register, login, changePassword, deleteAccount };

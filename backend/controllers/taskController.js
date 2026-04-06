@@ -4,6 +4,7 @@ const Notification = require('../models/Notification');
 const User = require('../models/User');
 const fs = require('fs');
 const path = require('path');
+const { sendEmail } = require('../utils/emailService');
 
 // GET /api/tasks - all tasks (all logged-in users)
 const getTasks = async (req, res) => {
@@ -11,11 +12,18 @@ const getTasks = async (req, res) => {
     const { status, user, priority, search } = req.query;
     let query = {};
 
+    const userRole = req.user.role?.toUpperCase();
+    const isManager = ['MANAGER', 'CEO', 'FOUNDER', 'ADMIN'].includes(userRole);
+    if (!isManager) {
+      query.assigned_users = req.user.id;
+    } else if (user) {
+      query.assigned_users = user;
+    }
+
     if (status) query.status = status;
     if (priority) query.priority = priority;
-    if (user) query.assigned_users = user; // Match if user is in assigned_users array
     if (search) {
-      query.title = { $regex: search, $options: 'i' }; // Case-insensitive search on title
+      query.title = { $regex: search, $options: 'i' };
     }
 
     const tasks = await Task.find(query)
@@ -32,7 +40,7 @@ const getTasks = async (req, res) => {
 // POST /api/tasks - create task (Manager only)
 const createTask = async (req, res) => {
   try {
-    const { title, description, assigned_users, priority, dueDate } = req.body;
+    const { title, description, assigned_users, priority, dueDate, project } = req.body;
     if (!title) return res.status(400).json({ message: 'Task title is required' });
 
     // Validate priority
@@ -52,11 +60,20 @@ const createTask = async (req, res) => {
       priority: priority || 'Medium',
       dueDate: dueDate || null,
       assigned_users: assigned_users || [],
+      project: project || null,
       created_by: req.user.id,
     });
+
+    // If project is provided, add task to project's tasks array
+    if (project) {
+      const Project = require('../models/Project');
+      await Project.findByIdAndUpdate(project, { $push: { tasks: task._id } });
+    }
+
     const populated = await task.populate([
       { path: 'assigned_users', select: 'name email role' },
       { path: 'created_by', select: 'name email' },
+      { path: 'project', select: 'name' }
     ]);
 
     await ActivityLog.create({
@@ -66,13 +83,26 @@ const createTask = async (req, res) => {
       taskTitle: task.title
     });
 
-    // Notify assigned users
+    // ── EMAIL NOTIFICATION: Task Assigned (to Creator/Manager) ──
+    const assignedNames = populated.assigned_users.map(u => u.name).join(', ') || 'Unassigned';
+    sendEmail({
+      to: req.user.email,
+      subject: 'Task Assigned Successfully',
+      text: `Your task "${task.title}" has been created and assigned.\n\n` +
+            `Task Name: ${task.title}\n` +
+            `Assigned To: ${assignedNames}\n` +
+            `Description: ${task.description || 'No description'}\n\n` +
+            `Regards,\nTaskFlow Automated System`
+    });
+
+    // Notify assigned users (In-app notification)
     if (assigned_users && assigned_users.length > 0) {
+      const projStr = populated.project ? ` in project "${populated.project.name}"` : '';
       const notifs = assigned_users.map(userId => {
         const dateStr = dueDate ? ` (Due: ${new Date(dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})` : '';
         return {
           user: userId,
-          message: `You have been assigned a new task: "${task.title}"${dateStr}`,
+          message: `You have been assigned a new task: "${task.title}"${projStr}${dateStr}`,
           type: 'info',
           task: task._id
         };
@@ -98,6 +128,7 @@ const updateTaskStatus = async (req, res) => {
       return res.status(400).json({ message: 'Invalid status' });
     }
 
+    const prevStatus = task.status;
     task.status = status;
     
     // Manage completion time and user
@@ -115,6 +146,7 @@ const updateTaskStatus = async (req, res) => {
       { path: 'assigned_users', select: 'name email role' },
       { path: 'created_by', select: 'name email' },
       { path: 'completed_by', select: 'name email' },
+      { path: 'project', select: 'name' }
     ]);
 
     await ActivityLog.create({
@@ -125,15 +157,31 @@ const updateTaskStatus = async (req, res) => {
     });
 
     // Notify CEO and Manager when task is completed
-    if (status === 'Completed') {
-      const managers = await User.find({ role: { $in: ['Manager', 'CEO', 'Founder'] } });
-      if (managers.length > 0) {
+    if (status === 'Completed' && prevStatus !== 'Completed') {
+      const allManagers = await User.find({ 
+        role: { $in: [/^manager$/i, /^ceo$/i, /^founder$/i, /^admin$/i] } 
+      });
+      
+      // ── EMAIL NOTIFICATION: Task Completed (to All Managers & CEO) ──
+      if (allManagers.length > 0) {
+        const managerEmails = [...new Set(allManagers.map(m => m.email))].join(', ');
+        sendEmail({
+          to: managerEmails,
+          subject: 'Task Completed',
+          text: `A task has been marked as completed.\n\n` +
+                `Task Name: ${task.title}\n` +
+                `Completed By: ${req.user.name}\n` +
+                `Completion Time: ${task.completion_time.toLocaleString()}\n\n` +
+                `Check your dashboard for details.`
+        });
+
         // Exclude the user who actually completed it if they are a manager themselves
-        const toNotify = managers.filter(m => m._id.toString() !== req.user.id);
-        if (toNotify.length > 0) {
-           const notifs = toNotify.map(m => ({
+        const toNotifyInApp = allManagers.filter(m => m._id.toString() !== req.user.id);
+        if (toNotifyInApp.length > 0) {
+           const projStr = populated.project ? ` from project "${populated.project.name}"` : '';
+           const notifs = toNotifyInApp.map(m => ({
              user: m._id,
-             message: `Task "${task.title}" was completed by ${req.user.name || 'a team member'}`,
+             message: `Task "${task.title}"${projStr} was completed by ${req.user.name || 'a team member'}`,
              type: 'success',
              task: task._id
            }));

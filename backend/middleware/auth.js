@@ -16,7 +16,8 @@ const protect = (req, res, next) => {
 };
 
 const managerOnly = (req, res, next) => {
-  if (!['Manager', 'CEO', 'Founder'].includes(req.user.role)) {
+  const role = req.user.role?.toUpperCase();
+  if (!['MANAGER', 'CEO', 'FOUNDER', 'ADMIN'].includes(role)) {
     return res.status(403).json({ message: 'Forbidden: Managers only' });
   }
   next();

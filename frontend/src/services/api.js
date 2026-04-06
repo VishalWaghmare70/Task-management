@@ -1,7 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'https://task-management-backend-mmeh.onrender.com/api').replace(/\/+$/, '');
-
+const API_BASE = (import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000/api' : 'https://task-management-backend-mmeh.onrender.com/api')).replace(/\/+$/, '');
 const api = axios.create({
   baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
@@ -18,6 +17,7 @@ api.interceptors.request.use((config) => {
 export const loginUser = (data) => api.post('/auth/login', data);
 export const registerUser = (data) => api.post('/auth/register', data);
 export const changePassword = (data) => api.put('/auth/change-password', data);
+export const deleteAccount = (data) => api.delete('/auth/delete-account', { data });
 
 
 // Tasks
@@ -56,5 +56,12 @@ export const fetchNotifications = () => api.get('/notifications');
 export const markNotificationRead = (id) => api.put(`/notifications/${id}/read`);
 export const markAllNotificationsRead = () => api.put('/notifications/read-all');
 export const clearAllNotifications = () => api.delete('/notifications');
+
+// Projects
+export const fetchProjects = () => api.get('/projects');
+export const createProject = (data) => api.post('/projects', data);
+export const fetchProjectDetails = (id) => api.get(`/projects/${id}`);
+export const updateProject = (id, data) => api.put(`/projects/${id}`, data);
+export const deleteProject = (id) => api.delete(`/projects/${id}`);
 
 export default api;

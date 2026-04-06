@@ -8,7 +8,7 @@ const ActivityLogSchema = new mongoose.Schema({
   },
   action: {
     type: String,
-    enum: ['created', 'updated', 'completed', 'deleted'],
+    enum: ['created', 'updated', 'completed', 'deleted', 'created project'],
     required: true
   },
   task: {

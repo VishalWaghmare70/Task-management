@@ -124,3 +124,21 @@
   background: var(--surface-container);
   color: var(--primary);
 }
+
+.delete-acc-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--on-surface-variant);
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all var(--transition-base);
+}
+
+.delete-acc-nav-btn:hover {
+  background: var(--surface-container);
+  color: #ef4444;
+}
